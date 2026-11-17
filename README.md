@@ -4,6 +4,10 @@ Google Maps'te seçilen bölge ve işletme türüne göre işletme bilgilerini t
 
 Türkiye'nin 81 il / 973 ilçesi ve 63 işletme türü listeden seçilir; tek arama ya da çok ilçe × çok tür toplu tarama yapılır.
 
+![Liste görünümü: tarama paneli, ilerleme çubuğu, özet kartları ve filtreler](docs/liste.png)
+
+![İşletme detay sayfası: takip durumu, iletişim bilgileri ve haftalık çalışma saatleri](docs/detay.png)
+
 ## Özellikler
 
 - **Toplanan alanlar:** ad, kategori, adres, koordinat, telefon, web sitesi, puan, yorum sayısı, haftalık çalışma saatleri, Maps bağlantısı / `place_id`
