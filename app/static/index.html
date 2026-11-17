@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="tr" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Google Maps İşletme Toplayıcı</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2314b8a6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s7-6.5 7-12a7 7 0 1 0-14 0c0 5.5 7 12 7 12z'/%3E%3Ccircle cx='12' cy='10' r='2.5'/%3E%3C/svg%3E">
+  <script>
+    (function () {
+      var theme = "dark";
+      try {
+        var saved = localStorage.getItem("maps_isletmeler_theme");
+        if (saved === "light" || saved === "dark") {
+          theme = saved;
+        } else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches) {
+          theme = "light";
+        }
+      } catch (e) {
+        if (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches) {
+          theme = "light";
+        }
+      }
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css">
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js" defer></script>
+  <script src="/static/app.js" defer></script>
+</head>
+<body>
+  <div class="aurora-backdrop" aria-hidden="true">
+    <div class="aurora-orb aurora-orb-1"></div>
+    <div class="aurora-orb aurora-orb-2"></div>
+    <div class="aurora-orb aurora-orb-3"></div>
+    <div class="aurora-grid"></div>
+  </div>
+
+  <div class="app-shell">
+    <div class="sticky-chrome">
+      <header class="topbar">
+        <div class="topbar-inner">
+          <div class="brand">
+            <span class="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 21s6.5-5.8 6.5-11.2a6.5 6.5 0 1 0-13 0C5.5 15.2 12 21 12 21z"/>
+                <circle cx="12" cy="9.8" r="2.3"/>
+              </svg>
+            </span>
+            <div class="brand-text">
+              <h1>Google Maps İşletme Toplayıcı</h1>
+              <p class="topbar-sub">81 il, 973 ilçe ve kategorize edilmiş işletme türleriyle verileri toplayın, filtreleyin ve dışa aktarın.</p>
+            </div>
+          </div>
+
+          <div class="topbar-actions">
+            <span id="global-stats" class="meta-pill tabular">0 kayıt</span>
+            <button
+              type="button"
+              id="theme-toggle"
+              class="icon-btn theme-toggle-btn"
+              aria-label="Tema değiştir"
+              title="Açık / Koyu Tema"
+            >
+              <svg class="icon-sun" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="4"/>
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+              </svg>
+              <svg class="icon-moon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <section id="global-progress" class="global-progress" aria-live="polite" hidden>
+        <div class="gp-inner">
+          <div id="gp-header" class="gp-header">
+            <div class="gp-top-row">
+              <div class="gp-title-group">
+                <span id="gp-dot" class="live-dot" aria-hidden="true"></span>
+                <span id="gp-label" class="gp-label">Toplu tarama</span>
+                <span id="gp-status-badge" class="status-badge">Çalışıyor</span>
+                <span id="gp-percent" class="gp-percent tabular"></span>
+              </div>
+
+              <div class="gp-actions">
+                <button type="button" id="gp-pause-btn" class="btn btn-warning btn-sm" hidden>
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="6" y="4" width="4" height="16" rx="1"/>
+                    <rect x="14" y="4" width="4" height="16" rx="1"/>
+                  </svg>
+                  <span>Duraklat</span>
+                </button>
+                <button type="button" id="gp-resume-btn" class="btn btn-primary btn-sm" hidden>
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polygon points="6 4 20 12 6 20 6 4"/>
+                  </svg>
+                  <span>Devam et</span>
+                </button>
+                <button type="button" id="gp-cancel-btn" class="btn btn-danger btn-sm" hidden>
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="6" y="6" width="12" height="12" rx="1.5"/>
+                  </svg>
+                  <span>İptal et</span>
+                </button>
+                <div id="gp-confirm-box" class="inline-confirm" hidden>
+                  <span class="inline-confirm-text">İptal edilsin mi?</span>
+                  <button type="button" id="gp-confirm-yes" class="btn btn-danger btn-sm">Evet, iptal et</button>
+                  <button type="button" id="gp-confirm-no" class="btn btn-ghost btn-sm">Vazgeç</button>
+                </div>
+                <button type="button" id="gp-dismiss-btn" class="btn btn-ghost btn-sm" hidden>
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M18 6 6 18M6 6l12 12"/>
+                  </svg>
+                  <span>Kapat</span>
+                </button>
+                <button
+                  type="button"
+                  id="gp-toggle-btn"
+                  class="gp-toggle-btn"
+                  aria-expanded="false"
+                  aria-controls="gp-details"
+                  aria-label="Tarama detaylarını göster veya gizle"
+                  title="Detayları göster / gizle"
+                >
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div
+              id="gp-bar-track"
+              class="gp-bar-track"
+              role="progressbar"
+              aria-label="Genel tarama ilerlemesi"
+              aria-valuemin="0"
+              aria-valuemax="100"
+              aria-valuenow="0"
+            >
+              <div id="gp-bar-fill" class="gp-bar-fill"></div>
+            </div>
+
+            <p id="gp-summary" class="gp-summary tabular"></p>
+          </div>
+
+          <div id="gp-details" class="gp-details" hidden>
+            <p id="gp-details-msg" class="gp-details-msg" hidden></p>
+            <ul id="gp-items-list" class="gp-items-list"></ul>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <main class="workspace" id="workspace">
+      <aside class="sidebar" id="sidebar" aria-label="Tarama ayarları ve geçmiş">
+        <section class="panel glass-panel" aria-labelledby="scrape-heading">
+          <div class="panel-head">
+            <div class="panel-title-wrap">
+              <svg class="panel-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"/>
+                <path d="m20 20-3.5-3.5"/>
+                <path d="M11 8v6M8 11h6"/>
+              </svg>
+              <h2 id="scrape-heading">Yeni Tarama</h2>
+            </div>
+          </div>
+
+          <form id="scrape-form" class="scrape-form" novalidate>
+            <div class="mode-toggle" id="scan-mode-toggle" role="group" aria-label="Tarama modu">
+              <button type="button" class="mode-toggle-btn is-active" data-mode="single" aria-pressed="true">Tek tarama</button>
+              <button type="button" class="mode-toggle-btn" data-mode="batch" aria-pressed="false">Toplu tarama</button>
+            </div>
+
+            <div id="single-fields" class="mode-fields">
+              <div class="field">
+                <div class="label-row">
+                  <label for="il-input">İl</label>
+                  <span id="il-plaka-badge" class="field-badge tabular" hidden></span>
+                </div>
+                <div class="combobox-wrap" id="il-combobox">
+                  <input
+                    id="il-input"
+                    type="text"
+                    class="combobox-input"
+                    role="combobox"
+                    aria-autocomplete="list"
+                    aria-expanded="false"
+                    aria-controls="il-listbox"
+                    placeholder="İl ara veya seçin..."
+                    autocomplete="off"
+                    spellcheck="false"
+                  >
+                  <button
+                    type="button"
+                    id="il-clear-btn"
+                    class="combobox-clear"
+                    aria-label="İl seçimini temizle"
+                    hidden
+                  >
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M18 6 6 18M6 6l12 12"/>
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    id="il-toggle-btn"
+                    class="combobox-chevron"
+                    aria-label="İl listesini aç"
+                    tabindex="-1"
+                  >
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="m6 9 6 6 6-6"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div class="field">
+                <div class="label-row">
+                  <label for="ilce-input">İlçe</label>
+                  <span id="ilce-count-hint" class="field-meta tabular"></span>
+                </div>
+                <div class="combobox-wrap" id="ilce-combobox">
+                  <input
+                    id="ilce-input"
+                    type="text"
+                    class="combobox-input"
+                    role="combobox"
+                    aria-autocomplete="list"
+                    aria-expanded="false"
+                    aria-controls="ilce-listbox"
+                    placeholder="Önce il seçin"
+                    autocomplete="off"
+                    spellcheck="false"
+                    disabled
+                  >
+                  <button
+                    type="button"
+                    id="ilce-toggle-btn"
+                    class="combobox-chevron"
+                    aria-label="İlçe listesini aç"
+                    tabindex="-1"
+                    disabled
+                  >
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="m6 9 6 6 6-6"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div class="field">
+                <div class="label-row">
+                  <label for="category-input">İşletme Türü</label>
+                  <span id="category-group-badge" class="field-badge" hidden></span>
+                </div>
+                <div class="combobox-wrap" id="category-combobox">
+                  <input
+                    id="category-input"
+                    type="text"
+                    class="combobox-input"
+                    role="combobox"
+                    aria-autocomplete="list"
+                    aria-expanded="false"
+                    aria-controls="category-listbox"
+                    placeholder="Kategori ara veya seçin..."
+                    autocomplete="off"
+                    spellcheck="false"
+                  >
+                  <button
+                    type="button"
+                    id="category-clear-btn"
+                    class="combobox-clear"
+                    aria-label="Kategori seçimini temizle"
+                    hidden
+                  >
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M18 6 6 18M6 6l12 12"/>
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    id="category-toggle-btn"
+                    class="combobox-chevron"
+                    aria-label="Kategori listesini aç"
+                    tabindex="-1"
+                  >
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="m6 9 6 6 6-6"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div id="query-preview" class="query-preview" aria-live="polite">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 21s6.5-5.8 6.5-11.2a6.5 6.5 0 1 0-13 0C5.5 15.2 12 21 12 21z"/>
+                  <circle cx="12" cy="9.8" r="2.3"/>
+                </svg>
+                <span id="query-preview-text" class="query-preview-text is-empty">İl ve işletme türü seçin</span>
+              </div>
+            </div>
+
+            <div id="batch-fields" class="mode-fields" hidden>
+              <div class="field">
+                <div class="label-row">
+                  <label for="batch-il-input">İl</label>
+                  <span id="batch-il-plaka-badge" class="field-badge tabular" hidden></span>
+                </div>
+                <div class="combobox-wrap" id="batch-il-combobox">
+                  <input
+                    id="batch-il-input"
+                    type="text"
+                    class="combobox-input"
+                    role="combobox"
+                    aria-autocomplete="list"
+                    aria-expanded="false"
+                    aria-controls="batch-il-listbox"
+                    placeholder="İl ara veya seçin..."
+                    autocomplete="off"
+                    spellcheck="false"
+                  >
+                  <button
+                    type="button"
+                    id="batch-il-clear-btn"
+                    class="combobox-clear"
+                    aria-label="İl seçimini temizle"
+                    hidden
+                  >
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M18 6 6 18M6 6l12 12"/>
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    id="batch-il-toggle-btn"
+                    class="combobox-chevron"
+                    aria-label="İl listesini aç"
+                    tabindex="-1"
+                  >
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="m6 9 6 6 6-6"/>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              <div class="field">
+                <div class="label-row">
+                  <label id="batch-ilce-label" for="batch-ilce-select-btn">İlçeler</label>
+                  <div class="batch-field-tools">
+                    <span id="batch-ilce-count-hint" class="field-meta tabular"></span>
+                    <button
+                      type="button"
+                      id="batch-ilce-all-btn"
+                      class="inline-toggle-pill"
+                      aria-pressed="false"
+                      disabled
+                    >
+                      Tüm ilçeler
+                    </button>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  id="batch-ilce-select-btn"
+                  class="multi-select-btn batch-multi-btn"
+                  aria-haspopup="dialog"
+                  aria-expanded="false"
+                  disabled
+                >
+                  <span id="batch-ilce-select-label" class="multi-select-label">Önce il seçin</span>
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6"/>
+                  </svg>
+                </button>
+                <div id="batch-ilce-chips" class="batch-chips-list" hidden aria-label="Seçilen ilçeler"></div>
+              </div>
+
+              <div class="field">
+                <div class="label-row">
+                  <label id="batch-cat-label" for="batch-cat-select-btn">İşletme Türleri</label>
+                  <span id="batch-cat-count-hint" class="field-meta tabular">0 seçili</span>
+                </div>
+                <button
+                  type="button"
+                  id="batch-cat-select-btn"
+                  class="multi-select-btn batch-multi-btn"
+                  aria-haspopup="dialog"
+                  aria-expanded="false"
+                >
+                  <span id="batch-cat-select-label" class="multi-select-label">İşletme türü seçin...</span>
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6"/>
+                  </svg>
+                </button>
+                <div id="batch-cat-chips" class="batch-chips-list" hidden aria-label="Seçilen işletme türleri"></div>
+              </div>
+
+              <div id="batch-summary-card" class="batch-summary-card" aria-live="polite">
+                <div class="batch-summary-main">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="3" y="4" width="7" height="7" rx="1.5"/>
+                    <rect x="14" y="4" width="7" height="7" rx="1.5"/>
+                    <rect x="3" y="13" width="7" height="7" rx="1.5"/>
+                    <rect x="14" y="13" width="7" height="7" rx="1.5"/>
+                  </svg>
+                  <span id="batch-summary-text" class="batch-summary-text tabular">0 ilçe × 0 tür = 0 arama</span>
+                </div>
+                <p id="batch-summary-warn" class="batch-summary-warn" hidden></p>
+              </div>
+            </div>
+
+            <div class="field">
+              <div class="label-row">
+                <label for="max-results">Maksimum Sonuç</label>
+                <span id="max-results-meta" class="field-meta tabular">1–1000</span>
+              </div>
+              <div class="max-results-row">
+                <input
+                  id="max-results"
+                  name="max_results"
+                  type="number"
+                  min="1"
+                  max="1000"
+                  value="50"
+                  placeholder="1–1000"
+                  required
+                >
+                <div class="preset-pills" role="group" aria-label="Hızlı sonuç sayısı seçimi">
+                  <button type="button" class="preset-pill" data-max="20">20</button>
+                  <button type="button" class="preset-pill is-active" data-max="50">50</button>
+                  <button type="button" class="preset-pill" data-max="100">100</button>
+                  <button type="button" class="preset-pill" data-max="all">Hepsi</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="field">
+              <div class="label-row">
+                <span class="field-group-label" id="workers-label">Tarayıcı sayısı</span>
+                <span id="workers-meta" class="field-meta tabular">1 tarayıcı</span>
+              </div>
+              <div class="workers-pills" id="workers-pills" role="group" aria-labelledby="workers-label">
+                <button type="button" class="worker-pill is-active" data-workers="1" aria-pressed="true">1</button>
+                <button type="button" class="worker-pill" data-workers="2" aria-pressed="false">2</button>
+                <button type="button" class="worker-pill" data-workers="3" aria-pressed="false">3</button>
+                <button type="button" class="worker-pill" data-workers="4" aria-pressed="false">4</button>
+                <button type="button" class="worker-pill" data-workers="5" aria-pressed="false">5</button>
+              </div>
+              <p class="field-hint is-flush">Fazla tarayıcı hızlandırır; Google CAPTCHA riskini artırır.</p>
+            </div>
+
+            <div class="field switch-wrap">
+              <label class="switch-field" for="headless">
+                <span class="switch-control">
+                  <input id="headless" name="headless" type="checkbox" checked>
+                  <span class="switch-track" aria-hidden="true"></span>
+                </span>
+                <span class="switch-label">Arka planda çalıştır (headless)</span>
+              </label>
+              <p class="field-hint">CAPTCHA çıkarsa anahtarı kapatıp tarayıcıyı görünür modda çalıştırın.</p>
+            </div>
+
+            <p id="form-error" class="alert alert-error" role="alert" hidden></p>
+
+            <div class="form-actions">
+              <button type="submit" id="start-btn" class="btn btn-primary">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polygon points="6 4 20 12 6 20 6 4"/>
+                </svg>
+                <span>Taramayı Başlat</span>
+              </button>
+              <button type="button" id="cancel-btn" class="btn btn-danger" hidden>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="6" y="6" width="12" height="12" rx="1.5"/>
+                </svg>
+                <span>İptal et</span>
+              </button>
+            </div>
+            <div id="form-confirm-box" class="inline-confirm inline-confirm-block" hidden>
+              <span class="inline-confirm-text">İptal edilsin mi?</span>
+              <div class="inline-confirm-btns">
+                <button type="button" id="form-confirm-yes" class="btn btn-danger btn-sm">Evet, iptal et</button>
+                <button type="button" id="form-confirm-no" class="btn btn-ghost btn-sm">Vazgeç</button>
+              </div>
+            </div>
+          </form>
+        </section>
+
+        <section id="status-panel" class="panel glass-panel status-panel" aria-live="polite" hidden>
+          <div class="panel-head">
+            <div class="panel-title-wrap">
+              <span class="live-dot" id="live-dot" aria-hidden="true"></span>
+              <h2>Tarama Durumu</h2>
+            </div>
+            <span id="status-badge" class="status-badge">Çalışıyor</span>
+          </div>
+
+          <div class="status-ring-row">
+            <div class="progress-ring-box" role="progressbar" id="progress-track" aria-label="Tarama ilerlemesi" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+              <svg class="progress-ring-svg" viewBox="0 0 96 96" aria-hidden="true">
+                <circle class="progress-ring-track" cx="48" cy="48" r="40"/>
+                <circle id="progress-ring-circle" class="progress-ring-fill" cx="48" cy="48" r="40"/>
+              </svg>
+              <div class="progress-ring-center">
+                <span id="progress-done" class="progress-ring-value tabular">0</span>
+                <span id="progress-total-label" class="progress-ring-sub tabular">/ 0</span>
+              </div>
+            </div>
+
+            <div class="status-details">
+              <div class="status-metrics">
+                <span id="progress-percent" class="status-percent tabular">%0</span>
+                <span id="status-elapsed" class="status-elapsed tabular">00:00</span>
+              </div>
+              <p id="status-message" class="status-message"></p>
+            </div>
+          </div>
+
+          <div id="status-actions" class="status-actions" hidden>
+            <button type="button" id="status-pause-btn" class="btn btn-warning btn-sm" hidden>
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="6" y="4" width="4" height="16" rx="1"/>
+                <rect x="14" y="4" width="4" height="16" rx="1"/>
+              </svg>
+              <span>Duraklat</span>
+            </button>
+            <button type="button" id="status-resume-btn" class="btn btn-primary btn-sm" hidden>
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <polygon points="6 4 20 12 6 20 6 4"/>
+              </svg>
+              <span>Devam et</span>
+            </button>
+            <button type="button" id="status-cancel-btn" class="btn btn-danger btn-sm" hidden>
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="6" y="6" width="12" height="12" rx="1.5"/>
+              </svg>
+              <span>İptal et</span>
+            </button>
+            <div id="status-confirm-box" class="inline-confirm inline-confirm-block" hidden>
+              <span class="inline-confirm-text">İptal edilsin mi?</span>
+              <div class="inline-confirm-btns">
+                <button type="button" id="status-confirm-yes" class="btn btn-danger btn-sm">Evet, iptal et</button>
+                <button type="button" id="status-confirm-no" class="btn btn-ghost btn-sm">Vazgeç</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="status-guidance" class="alert" hidden></div>
+        </section>
+
+        <section class="panel glass-panel" aria-labelledby="searches-heading">
+          <div class="panel-head">
+            <div class="panel-title-wrap">
+              <svg class="panel-icon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="9"/>
+                <polyline points="12 7 12 12 15.5 14"/>
+              </svg>
+              <h2 id="searches-heading">Önceki Taramalar</h2>
+            </div>
+            <button type="button" id="show-all-btn" class="btn btn-ghost btn-sm" hidden>Tümünü Göster</button>
+          </div>
+          <ul id="searches-list" class="searches-list"></ul>
+          <p id="searches-empty" class="empty-note">Henüz kaydedilmiş tarama bulunmuyor.</p>
+        </section>
+      </aside>
+
+      <div class="main-content" id="main-content">
+        <section class="kpi-grid" aria-label="Özet istatistikler">
+          <article class="kpi-card glass-panel">
+            <div class="kpi-head">
+              <span class="kpi-label">Toplam İşletme</span>
+              <span class="kpi-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/>
+                </svg>
+              </span>
+            </div>
+            <div id="kpi-total" class="kpi-value tabular">0</div>
+            <div id="kpi-total-sub" class="kpi-sub tabular">Kayıt bekleniyor</div>
+          </article>
+
+          <article class="kpi-card glass-panel">
+            <div class="kpi-head">
+              <span class="kpi-label">Telefonu Olan</span>
+              <span class="kpi-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
+                </svg>
+              </span>
+            </div>
+            <div id="kpi-phone" class="kpi-value tabular">0</div>
+            <div id="kpi-phone-sub" class="kpi-sub tabular">0 işletmeden</div>
+            <div class="kpi-meter" aria-hidden="true"><div id="kpi-phone-bar" class="kpi-meter-fill"></div></div>
+          </article>
+
+          <article class="kpi-card glass-panel">
+            <div class="kpi-head">
+              <span class="kpi-label">Web Sitesi Olmayan</span>
+              <span class="kpi-icon kpi-icon-amber" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="12" cy="12" r="9"/>
+                  <path d="M3.6 9h16.8M3.6 15h16.8M12 3a14.5 14.5 0 0 1 0 18M12 3a14.5 14.5 0 0 0 0 18"/>
+                </svg>
+              </span>
+            </div>
+            <div id="kpi-no-website" class="kpi-value tabular">0</div>
+            <div id="kpi-no-website-sub" class="kpi-sub tabular">0 işletmeden</div>
+            <div class="kpi-meter" aria-hidden="true"><div id="kpi-no-website-bar" class="kpi-meter-fill is-amber"></div></div>
+          </article>
+        </section>
+
+        <section id="results-panel" class="panel glass-panel results-panel" aria-labelledby="results-heading">
+          <div class="results-toolbar">
+            <div class="results-title-group">
+              <h2 id="results-heading">İşletmeler</h2>
+              <span id="results-count" class="count-badge tabular">0 sonuç</span>
+              <span id="active-filter-label" class="scope-chip">Tüm kayıtlar</span>
+              <button type="button" id="clear-filter-btn" class="btn btn-ghost btn-sm" hidden>Kapsamı Kaldır</button>
+            </div>
+
+            <div class="toolbar-actions">
+              <div class="view-switcher" role="group" aria-label="Görünüm modu">
+                <button type="button" id="view-cards-btn" class="view-btn is-active" data-view="cards" aria-pressed="true">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="3" y="3" width="7" height="7" rx="1.5"/>
+                    <rect x="14" y="3" width="7" height="7" rx="1.5"/>
+                    <rect x="3" y="14" width="7" height="7" rx="1.5"/>
+                    <rect x="14" y="14" width="7" height="7" rx="1.5"/>
+                  </svg>
+                  <span>Kartlar</span>
+                </button>
+                <button type="button" id="view-table-btn" class="view-btn" data-view="table" aria-pressed="false">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <rect x="3" y="4" width="18" height="16" rx="2"/>
+                    <path d="M3 10h18M9 4v16"/>
+                  </svg>
+                  <span>Tablo</span>
+                </button>
+                <button type="button" id="view-map-btn" class="view-btn" data-view="map" aria-pressed="false">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <polygon points="3 6 9 3 15 6 21 3 21 18 15 21 9 18 3 21"/>
+                    <line x1="9" y1="3" x2="9" y2="18"/>
+                    <line x1="15" y1="6" x2="15" y2="21"/>
+                  </svg>
+                  <span>Harita</span>
+                </button>
+              </div>
+
+              <button type="button" id="export-btn" class="btn btn-secondary">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M12 3v12"/>
+                  <polyline points="7 10 12 15 17 10"/>
+                  <path d="M5 20h14"/>
+                </svg>
+                <span>Excel İndir</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="filter-bar">
+            <div class="filter-top-row">
+              <div class="search-box">
+                <svg class="search-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7"/>
+                  <line x1="20" y1="20" x2="16.2" y2="16.2"/>
+                </svg>
+                <input
+                  id="filter-text"
+                  type="search"
+                  placeholder="İşletme adı, adres veya kategori ara..."
+                  aria-label="İşletme adı, adres veya kategori ara"
+                >
+              </div>
+
+              <button
+                type="button"
+                id="mobile-filters-toggle"
+                class="btn btn-ghost btn-sm mobile-filters-toggle"
+                aria-expanded="false"
+                aria-controls="detailed-filters-grid"
+              >
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>
+                </svg>
+                <span>Filtreler</span>
+              </button>
+            </div>
+
+            <div id="detailed-filters-grid" class="detailed-filters-grid">
+              <div class="filter-control">
+                <label for="filter-il">İl</label>
+                <select id="filter-il">
+                  <option value="">Tüm iller</option>
+                </select>
+              </div>
+
+              <div class="filter-control">
+                <label for="filter-ilce">İlçe</label>
+                <select id="filter-ilce" disabled>
+                  <option value="">Tüm ilçeler</option>
+                </select>
+              </div>
+
+              <div class="filter-control">
+                <label for="filter-search-cat">Arama Türü</label>
+                <select id="filter-search-cat">
+                  <option value="">Tüm türler</option>
+                </select>
+              </div>
+
+              <div class="filter-control">
+                <label for="filter-maps-cat-btn">Maps Kategorisi</label>
+                <button
+                  type="button"
+                  id="filter-maps-cat-btn"
+                  class="multi-select-btn"
+                  aria-haspopup="listbox"
+                  aria-expanded="false"
+                >
+                  <span id="filter-maps-cat-label" class="multi-select-label">Tüm kategoriler</span>
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6"/>
+                  </svg>
+                </button>
+              </div>
+
+              <div class="filter-control">
+                <label for="filter-sort">Sıralama</label>
+                <select id="filter-sort">
+                  <option value="newest">En yeni</option>
+                  <option value="rating">Puan (Yüksekten)</option>
+                  <option value="reviews">Yorum sayısı</option>
+                  <option value="name">Ad (A-Z)</option>
+                </select>
+              </div>
+
+              <div class="filter-control filter-range-control">
+                <div class="label-row">
+                  <label for="filter-min-rating">Min. Puan</label>
+                  <span id="filter-min-rating-val" class="field-badge tabular">Tümü</span>
+                </div>
+                <input
+                  id="filter-min-rating"
+                  type="range"
+                  min="0"
+                  max="5"
+                  step="0.1"
+                  value="0"
+                  aria-label="Minimum puan"
+                >
+              </div>
+
+              <div class="filter-control filter-reviews-control">
+                <label for="filter-min-reviews">Min. Yorum</label>
+                <input
+                  id="filter-min-reviews"
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="ör. 25"
+                  aria-label="Minimum yorum sayısı"
+                >
+              </div>
+
+              <div class="filter-status-group">
+                <span class="filter-group-label" id="filter-durum-label">Durum</span>
+                <div
+                  id="filter-durum-pills"
+                  class="durum-filter-pills"
+                  role="group"
+                  aria-labelledby="filter-durum-label"
+                >
+                  <button type="button" class="durum-filter-pill is-all is-active" data-durum="" aria-pressed="true">
+                    <span>Tümü</span>
+                  </button>
+                  <button type="button" class="durum-filter-pill is-yeni" data-durum="yeni" aria-pressed="false">
+                    <span class="durum-dot" aria-hidden="true"></span>
+                    <span>Yeni</span>
+                  </button>
+                  <button type="button" class="durum-filter-pill is-bekleniyor" data-durum="bekleniyor" aria-pressed="false">
+                    <span class="durum-dot" aria-hidden="true"></span>
+                    <span>Geri dönüş bekleniyor</span>
+                  </button>
+                  <button type="button" class="durum-filter-pill is-onaylandi" data-durum="onaylandi" aria-pressed="false">
+                    <span class="durum-dot" aria-hidden="true"></span>
+                    <span>Onaylandı</span>
+                  </button>
+                  <button type="button" class="durum-filter-pill is-reddedildi" data-durum="reddedildi" aria-pressed="false">
+                    <span class="durum-dot" aria-hidden="true"></span>
+                    <span>Reddedildi</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="filter-toggles-group" role="group" aria-label="İletişim ve saat filtreleri">
+                <label class="toggle-chip">
+                  <input type="checkbox" id="filter-no-phone">
+                  <span>Telefonu yok</span>
+                </label>
+                <label class="toggle-chip">
+                  <input type="checkbox" id="filter-no-website">
+                  <span>Web sitesi yok</span>
+                </label>
+                <label class="toggle-chip">
+                  <input type="checkbox" id="filter-has-hours">
+                  <span>Çalışma saati var</span>
+                </label>
+              </div>
+            </div>
+
+            <div id="active-chips-bar" class="active-chips-bar" hidden>
+              <div id="active-chips-list" class="active-chips-list"></div>
+              <button type="button" id="clear-all-filters-btn" class="btn btn-ghost btn-sm clear-filters-btn">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M18 6 6 18M6 6l12 12"/>
+                </svg>
+                <span>Temizle</span>
+              </button>
+            </div>
+          </div>
+
+          <p id="table-error" class="alert alert-error table-alert" role="alert" hidden></p>
+
+          <div id="skeleton-view" class="skeleton-grid" hidden aria-hidden="true">
+            <div class="skeleton-card">
+              <div class="skeleton-line w-60"></div>
+              <div class="skeleton-line w-40"></div>
+              <div class="skeleton-line w-90"></div>
+              <div class="skeleton-line w-75"></div>
+              <div class="skeleton-box"></div>
+            </div>
+            <div class="skeleton-card">
+              <div class="skeleton-line w-55"></div>
+              <div class="skeleton-line w-35"></div>
+              <div class="skeleton-line w-85"></div>
+              <div class="skeleton-line w-70"></div>
+              <div class="skeleton-box"></div>
+            </div>
+            <div class="skeleton-card">
+              <div class="skeleton-line w-65"></div>
+              <div class="skeleton-line w-45"></div>
+              <div class="skeleton-line w-80"></div>
+              <div class="skeleton-line w-60"></div>
+              <div class="skeleton-box"></div>
+            </div>
+          </div>
+
+          <div id="cards-view" class="cards-view">
+            <div id="cards-grid" class="cards-grid"></div>
+          </div>
+
+          <div id="table-view" class="table-view" hidden>
+            <div id="table-wrap" class="table-wrap">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>İşletme</th>
+                    <th>Durum</th>
+                    <th class="num">Puan / Yorum</th>
+                    <th>Bugünkü Saatler</th>
+                    <th>İletişim</th>
+                  </tr>
+                </thead>
+                <tbody id="businesses-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="map-view" class="map-view" hidden>
+            <div id="map-stats-bar" class="map-stats-bar">
+              <span id="map-stats-text" class="tabular">Harita hazırlanıyor...</span>
+            </div>
+            <div id="map-container" class="map-container" aria-label="İşletmeler haritası"></div>
+            <div id="map-fallback" class="map-fallback" hidden>
+              <p>Harita kütüphanesi yüklenemedi. İnternet bağlantınızı kontrol edin veya Kartlar/Tablo görünümünü kullanın.</p>
+            </div>
+          </div>
+
+          <div id="pagination-bar" class="pagination-bar" hidden>
+            <div id="pagination-info" class="pagination-info tabular">0–0 / 0</div>
+            <nav id="pagination-controls" class="pagination-controls" aria-label="Sayfalama"></nav>
+          </div>
+
+          <div id="results-empty" class="results-empty" hidden>
+            <span class="empty-illustration" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 21s6.5-5.8 6.5-11.2a6.5 6.5 0 1 0-13 0C5.5 15.2 12 21 12 21z"/>
+                <circle cx="12" cy="9.8" r="2.3"/>
+              </svg>
+            </span>
+            <h3 id="results-empty-title" class="empty-title">Henüz işletme kaydı yok.</h3>
+            <p id="results-empty-desc" class="empty-desc">Soldaki panelden il, ilçe ve işletme türü seçerek yeni bir tarama başlatabilirsiniz.</p>
+            <button type="button" id="empty-reset-btn" class="btn btn-ghost btn-sm" hidden>Filtreleri Temizle</button>
+          </div>
+        </section>
+      </div>
+
+      <section id="detail-view" class="detail-view" hidden aria-label="İşletme Detayı"></section>
+    </main>
+  </div>
+
+  <div id="combobox-portal" class="combobox-portal"></div>
+  <div id="toast-stack" class="toast-stack" aria-live="polite" aria-atomic="false"></div>
+</body>
+</html>

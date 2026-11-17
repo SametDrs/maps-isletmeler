@@ -1,0 +1,125 @@
+[
+  {
+    "group": "Yeme-İçme",
+    "icon": "🍽️",
+    "items": [
+      "Fast Food",
+      "Fırın",
+      "Kafe",
+      "Kahvaltıcı",
+      "Kebapçı",
+      "Pastane",
+      "Restoran"
+    ]
+  },
+  {
+    "group": "Sağlık",
+    "icon": "🏥",
+    "items": [
+      "Diş Hekimi",
+      "Eczane",
+      "Fizyoterapist",
+      "Hastane",
+      "Klinik",
+      "Psikolog",
+      "Veteriner"
+    ]
+  },
+  {
+    "group": "Güzellik & Bakım",
+    "icon": "💇",
+    "items": [
+      "Berber",
+      "Cilt Bakım Salonu",
+      "Güzellik Merkezi",
+      "Kuaför",
+      "Masaj Salonu",
+      "Tırnak Stüdyosu"
+    ]
+  },
+  {
+    "group": "Alışveriş",
+    "icon": "🛍️",
+    "items": [
+      "Çiçekçi",
+      "Elektronik Mağazası",
+      "Giyim Mağazası",
+      "Kitapçı",
+      "Kuyumcu",
+      "Market",
+      "Süpermarket"
+    ]
+  },
+  {
+    "group": "Otomotiv",
+    "icon": "🚗",
+    "items": [
+      "Akaryakıt İstasyonu",
+      "Lastikçi",
+      "Oto Ekspertiz",
+      "Oto Galeri",
+      "Oto Tamir",
+      "Oto Yıkama"
+    ]
+  },
+  {
+    "group": "Konaklama",
+    "icon": "🏨",
+    "items": [
+      "Apart Otel",
+      "Butik Otel",
+      "Otel",
+      "Pansiyon",
+      "Tatil Köyü"
+    ]
+  },
+  {
+    "group": "Eğitim",
+    "icon": "🎓",
+    "items": [
+      "Anaokulu",
+      "Dil Kursu",
+      "Kurs Merkezi",
+      "Kütüphane",
+      "Okul",
+      "Sürücü Kursu"
+    ]
+  },
+  {
+    "group": "Hizmetler",
+    "icon": "🛠️",
+    "items": [
+      "Çilingir",
+      "Fotoğrafçı",
+      "Kargo Şubesi",
+      "Kuru Temizleme",
+      "Matbaa",
+      "Nakliyat",
+      "Terzi"
+    ]
+  },
+  {
+    "group": "Spor & Eğlence",
+    "icon": "🏋️",
+    "items": [
+      "Halı Saha",
+      "Oyun Salonu",
+      "Pilates Stüdyosu",
+      "Sinema",
+      "Spor Salonu",
+      "Yüzme Havuzu"
+    ]
+  },
+  {
+    "group": "Profesyonel",
+    "icon": "💼",
+    "items": [
+      "Avukat",
+      "Emlakçı",
+      "Mimar",
+      "Muhasebeci",
+      "Noter",
+      "Sigorta Acentesi"
+    ]
+  }
+]
